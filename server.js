@@ -1,40 +1,48 @@
 const OBSWebSocket = require("obs-websocket-js").default;
 const axios = require("axios");
 const fs = require("fs");
-require("dotenv").config();
+const path = require("path");
+const boxen = require("boxen");
 
-const alertApiUrl =
-  "https://api.weather.gov/alerts/active?status=actual&code[0]=SVR&code[1]=TOR";
+const config = JSON.parse(
+  fs.readFileSync(path.join(path.dirname(process.execPath), "config.json"))
+);
+
+const alertApiUrl = "https://api.weather.gov/alerts/active"; //?status=actual&code[0]=SVR&code[1]=TOR
 
 const obs = new OBSWebSocket();
 let isConnected = false;
 
 let activeAlerts = [];
-/*
-    {
-        "id": "https://api.weather.gov/alerts/NOAA-NWS-ALY-1252e1a2e5e4e8e8e8e8e8e8e8e8e8e8",
-        "areaDesc": "Northwest Alabama",
-        "certainty": "Likely",
-        "event": "Tornado Warning",
-        "displayName": "Tornado Warning for Northwest Alabama (Likely)",
-        "isShown": false
-    }
-*/
 let alertQueue = [];
 let isQueing = false;
 let isHandling = false;
 let activeNumber = 0;
 
+const boxenOptions = {
+  padding: 1,
+  margin: 1,
+  borderStyle: "round",
+  borderColor: "green",
+  backgroundColor: "#555555",
+};
+
 async function Connect() {
   try {
     await obs.connect(
-      `ws://${process.env.SOCKET_IP}:${process.env.SOCKET_PORT}`,
-      process.env.SOCKET_PASSWORD
+      `ws://${config.serverSettings.socketIp}:${config.serverSettings.socketPort}`,
+      config.serverSettings.socketPassword
     );
     isConnected = true;
     console.log("Connected to OBS WebSocket Server");
   } catch (e) {
     console.error(`Failed to Connect to the OBS WebSocket Server. Error: ${e}`);
+  }
+}
+
+function LogDebug(string) {
+  if (config.developerSettings.enableDebugMessages && string) {
+    console.log(string);
   }
 }
 
@@ -69,21 +77,19 @@ function WriteWarnCount() {
 }
 
 async function HandleQueue() {
-  console.log("handling queue");
+  LogDebug("Handling Queue");
   isQueing = true;
 
   if (isConnected && alertQueue.length > 0) {
-    console.log("Pass #1");
-    console.log(activeAlerts);
+    LogDebug(activeAlerts);
     activeAlert = activeAlerts.find((a) => a.id === alertQueue[0]);
     if (activeAlert && !activeAlert.isShown) {
-      console.log("Pass #2");
       const { currentProgramSceneName } = await obs.call(
         "GetCurrentProgramScene"
       );
       const { sceneItemId } = await obs.call("GetSceneItemId", {
         sceneName: currentProgramSceneName,
-        sourceName: "Alert",
+        sourceName: config.obsSourceSettings.alertSourceName,
       });
 
       fs.writeFile(
@@ -107,7 +113,6 @@ async function HandleQueue() {
         sceneItemId: sceneItemId,
         sceneItemEnabled: true,
       });
-      console.log("Pass #3");
       await new Promise((resolve) => setTimeout(resolve, 10000));
       await obs.call("SetSceneItemEnabled", {
         sceneName: currentProgramSceneName,
@@ -122,7 +127,6 @@ async function HandleQueue() {
   }
 
   if (alertQueue.length > 0) {
-    console.log("Pass #4");
     HandleQueue();
   } else {
     isQueing = false;
@@ -134,7 +138,7 @@ function ApiSuccess(res) {
   const alerts = res.data.features;
   newAlerts = [];
   alerts.forEach((alert) => {
-    console.log(alert);
+    LogDebug(alert);
 
     const existingActive = activeAlerts.find((a) => a.id === alert.id);
     if (existingActive) {
@@ -154,7 +158,7 @@ function ApiSuccess(res) {
   });
 
   activeAlerts = newAlerts;
-  if (process.env.WARN_COUNT_ENABLED == "true") {
+  if (config.enableSettings.enableWarnCount) {
     WriteWarnCount();
   }
 
@@ -162,15 +166,31 @@ function ApiSuccess(res) {
     HandleQueue();
   }
 
+  let alertList = "";
+  newAlerts.forEach((alert) => {
+    alertList = `${alertList}\n${alert.displayName}`;
+  });
+
+  const msg = boxen(
+    `Active Alert Count: ${activeAlerts.length} - Queue Length: ${alertQueue.length} Alerts in Queue - Active Alerts:\n${alertList}\n`,
+    boxenOptions
+  );
+  console.log(msg);
+
   isHandling = false;
 }
 
 function Loop() {
   if (!isHandling) {
     axios
-      .get(alertApiUrl)
+      .get(alertApiUrl, {
+        params: {
+          status: "actual",
+          code: config.triggerSettings.triggerWarns || ["SVR", "TOR"],
+        },
+      })
       .then((res) => {
-        console.log("Request Successful");
+        LogDebug("Request Successful");
         ApiSuccess(res);
       })
       .catch((err) => {
@@ -222,12 +242,15 @@ ResetDataFiles();
 Connect();
 //Loop();
 if (
-  process.env.ALERT_ENABLED == "true" ||
-  process.env.WARN_COUNT_ENABLED == "true"
+  config.enableSettings.enableAlerts ||
+  config.enableSettings.enableWarnCount
 ) {
-  setInterval(Loop, 5000);
+  setInterval(Loop, config.timeSettings.timeBetweenAlertChecks || 5000);
 }
 
-if (process.env.ALERT_LIST_ENABLED == "true") {
-  setInterval(AlertListLoop, 8000);
+if (config.enableSettings.enableAlertsList) {
+  setInterval(
+    AlertListLoop,
+    config.timeSettings.timeBetweenAlertListChange || 8000
+  );
 }

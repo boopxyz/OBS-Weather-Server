@@ -1,8 +1,16 @@
 {
+  "serverSettings": {
+    "socketIp": "127.0.0.1",
+    "socketPort": "4455",
+    "socketPassword": "nBWG4citCwjNyDjk"
+  },
   "enableSettings": {
     "enableAlerts": true,
     "enableAlertsList": true,
     "enableWarnCount": true
+  },
+  "apiSettings": {
+    "alertApi": "nws"
   },
   "triggerSettings": {
     "triggerWarns": ["SVR", "TOR"]
@@ -14,5 +22,8 @@
   "obsSourceSettings": {
     "alertSourceName": "Alert"
   },
-  "formattingSettings": {}
+  "formattingSettings": {},
+  "developerSettings": {
+    "enableDebugMessages": false
+  }
 }
