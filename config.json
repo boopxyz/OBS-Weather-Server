@@ -1,0 +1,18 @@
+{
+  "enableSettings": {
+    "enableAlerts": true,
+    "enableAlertsList": true,
+    "enableWarnCount": true
+  },
+  "triggerSettings": {
+    "triggerWarns": ["SVR", "TOR"]
+  },
+  "timeSettings": {
+    "timeBetweenAlertChecks": 5000,
+    "timeBetweenAlertListChange": 8000
+  },
+  "obsSourceSettings": {
+    "alertSourceName": "Alert"
+  },
+  "formattingSettings": {}
+}
