@@ -11,11 +11,11 @@ _You must also enable WebSockets in OBS_
 
 ## How to Use (WIP)
 
-Watch the video
+Watch the video [here](https://youtu.be/V76HeoPfJi0)
 
 ## Event Codes
 
-You can get the event codes here
+You can get the event codes [here](https://www.weather.gov/nwr/eventcodes)
 
 ## Licensing Regulations
 
