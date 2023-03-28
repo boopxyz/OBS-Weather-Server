@@ -13,9 +13,9 @@ _You must also enable WebSockets in OBS_
 
 Watch the video [here](https://youtu.be/V76HeoPfJi0)
 
-## Event Codes
+## Event Codes & Formatting Variables
 
-You can get the event codes [here](https://www.weather.gov/nwr/eventcodes)
+Check the [wiki](https://github.com/boopxyz/OBS-Weather-Server/wiki) for the event codes and available variables for formatting
 
 ## Licensing Regulations
 

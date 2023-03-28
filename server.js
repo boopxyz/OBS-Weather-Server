@@ -3,10 +3,13 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const boxen = require("boxen");
+const mustache = require("mustache");
 
 const config = JSON.parse(
   fs.readFileSync(path.join(path.dirname(process.execPath), "config.json"))
 );
+
+//const config = require("./config.json");
 
 const alertApiUrl = "https://api.weather.gov/alerts/active"; //?status=actual&code[0]=SVR&code[1]=TOR
 
@@ -46,6 +49,21 @@ function LogDebug(string) {
   }
 }
 
+function GetEventCodeFromEventName(name) {
+  switch (name) {
+    case "Tornado Warning":
+      return "TOR";
+    case "Severe Thunderstorm Warning":
+      return "SVR";
+    case "Tornado Watch":
+      return "TOA";
+    case "Severe Thunderstorm Watch":
+      return "SVA";
+    default:
+      return null;
+  }
+}
+
 function ResetDataFiles() {
   fs.writeFile("./data/WarnCount.txt", `WARN COUNT: 0`, (err) => {
     if (err) {
@@ -65,9 +83,16 @@ function ResetDataFiles() {
 }
 
 function WriteWarnCount() {
+  const validWarnCountVars = {
+    warnCount: activeAlerts.length,
+  };
+
   fs.writeFile(
     "./data/WarnCount.txt",
-    `WARN COUNT: ${activeAlerts.length}`,
+    mustache.render(
+      config.formattingSettings.warnCountFormat,
+      validWarnCountVars
+    ),
     (err) => {
       if (err) {
         console.error(err);
@@ -87,25 +112,50 @@ async function HandleQueue() {
       const { currentProgramSceneName } = await obs.call(
         "GetCurrentProgramScene"
       );
+
+      LogDebug(
+        config.obsSourceSettings[
+          GetEventCodeFromEventName(activeAlert.event)
+        ] || config.obsSourceSettings[activeAlert.event]
+      );
       const { sceneItemId } = await obs.call("GetSceneItemId", {
         sceneName: currentProgramSceneName,
-        sourceName: config.obsSourceSettings.alertSourceName,
+        sourceName:
+          config.obsSourceSettings[
+            GetEventCodeFromEventName(activeAlert.event)
+          ] || config.obsSourceSettings[activeAlert.event],
       });
+
+      const validAlertVars = {
+        alertName: activeAlert.event,
+        alertAreas: activeAlert.areaDesc,
+        alertCertainty: activeAlert.certainty,
+      };
 
       fs.writeFile(
         "./data/AlertName.txt",
-        `${activeAlert.event} (${activeAlert.certainty})`,
+        mustache.render(
+          config.formattingSettings.alertFormats.alertTitleFormat,
+          validAlertVars
+        ),
         (err) => {
           if (err) {
             console.error(err);
           }
         }
       );
-      fs.writeFile("./data/AlertDesc.txt", activeAlert.areaDesc, (err) => {
-        if (err) {
-          console.error(err);
+      fs.writeFile(
+        "./data/AlertDesc.txt",
+        mustache.render(
+          config.formattingSettings.alertFormats.alertDescriptionFormat,
+          validAlertVars
+        ),
+        (err) => {
+          if (err) {
+            console.error(err);
+          }
         }
-      });
+      );
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       await obs.call("SetSceneItemEnabled", {
@@ -113,7 +163,12 @@ async function HandleQueue() {
         sceneItemId: sceneItemId,
         sceneItemEnabled: true,
       });
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) =>
+        setTimeout(
+          resolve,
+          config.timeSettings.durationAlertIsShownFor || 10000
+        )
+      );
       await obs.call("SetSceneItemEnabled", {
         sceneName: currentProgramSceneName,
         sceneItemId: sceneItemId,
@@ -170,11 +225,9 @@ function ApiSuccess(res) {
   newAlerts.forEach((alert) => {
     alertList = `${alertList}\n${alert.displayName}`;
   });
+  const alertString = `Active Alert Count: ${activeAlerts.length} - Queue Length: ${alertQueue.length} Alerts in Queue - Active Alerts:\n${alertList}\n`;
 
-  const msg = boxen(
-    `Active Alert Count: ${activeAlerts.length} - Queue Length: ${alertQueue.length} Alerts in Queue - Active Alerts:\n${alertList}\n`,
-    boxenOptions
-  );
+  const msg = boxen(alertString, boxenOptions);
   console.log(msg);
 
   isHandling = false;
@@ -206,9 +259,18 @@ function AlertListLoop() {
       activeNumber = 0;
     }
 
+    const validAlertVars = {
+      alertName: activeAlerts[activeNumber].event,
+      alertAreas: activeAlerts[activeNumber].areaDesc,
+      alertCertainty: activeAlerts[activeNumber].certainty,
+    };
+
     fs.writeFile(
       "./data/ActiveAlertTitle.txt",
-      `${activeAlerts[activeNumber].event}`,
+      mustache.render(
+        config.formattingSettings.alertListFormats.activeAlertTitleFormat,
+        validAlertVars
+      ),
       (err) => {
         if (err) {
           console.error(err);
@@ -217,7 +279,10 @@ function AlertListLoop() {
     );
     fs.writeFile(
       "./data/ActiveAlertText.txt",
-      `${activeAlerts[activeNumber].areaDesc}`,
+      mustache.render(
+        config.formattingSettings.alertListFormats.activeAlertDescriptionFormat,
+        validAlertVars
+      ),
       (err) => {
         if (err) {
           console.error(err);

@@ -2,27 +2,37 @@
   "serverSettings": {
     "socketIp": "127.0.0.1",
     "socketPort": "4455",
-    "socketPassword": "nBWG4citCwjNyDjk"
+    "socketPassword": "21a2PwJJVwKzrOhv"
   },
   "enableSettings": {
     "enableAlerts": true,
     "enableAlertsList": true,
     "enableWarnCount": true
   },
-  "apiSettings": {
-    "alertApi": "nws"
-  },
   "triggerSettings": {
-    "triggerWarns": ["SVR", "TOR"]
+    "triggerWarns": ["SVR", "TOR", "SPS"]
   },
   "timeSettings": {
     "timeBetweenAlertChecks": 5000,
-    "timeBetweenAlertListChange": 8000
+    "timeBetweenAlertListChange": 8000,
+    "durationAlertIsShownFor": 10000
   },
   "obsSourceSettings": {
-    "alertSourceName": "Alert"
+    "TOR": "Alert",
+    "SVR": "Alert",
+    "Special Weather Statement": "Logo"
   },
-  "formattingSettings": {},
+  "formattingSettings": {
+    "alertFormats": {
+      "alertTitleFormat": "{{alertName}}",
+      "alertDescriptionFormat": "{{alertAreas}}"
+    },
+    "alertListFormats": {
+      "activeAlertTitleFormat": "{{alertName}}",
+      "activeAlertDescriptionFormat": "{{alertAreas}}"
+    },
+    "warnCountFormat": "WARN COUNT: {{warnCount}}"
+  },
   "developerSettings": {
     "enableDebugMessages": false
   }
