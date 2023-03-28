@@ -19,4 +19,4 @@ Check the [wiki](https://github.com/boopxyz/OBS-Weather-Server/wiki) for the eve
 
 ## Licensing Regulations
 
-_You must provide credit to this repo for the application in your video/stream's description if being used!_
+_You need to provide proper credit if this is used in a live stream/video. A link to this repo isn't required but something along the lines of "Alerts by Boop" is. If you wish to use this product without having to credit me, contact me for details.
