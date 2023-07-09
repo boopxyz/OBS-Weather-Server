@@ -8,6 +8,9 @@
     "build": "ncc build -o dist/lib ./server.js && pkg --out-path ./dist ./dist/lib/index.js"
   },
   "dependencies": {
+    "@xmpp/client": "^0.13.1",
+    "@xmpp/debug": "^0.13.0",
+    "@xmpp/resolve": "^0.13.1",
     "ansi-align": "^3.0.1",
     "ansi-regex": "^4.1.1",
     "ansi-styles": "^3.2.1",
